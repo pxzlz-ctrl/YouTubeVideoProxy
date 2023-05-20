@@ -1,7 +1,6 @@
-from flask import Flask, request, send_file
+from flask import Flask, request, Response
 from pytube import YouTube
-import os
-import shutil
+import requests
 
 app = Flask(__name__)
 
@@ -19,21 +18,20 @@ def proxy():
             youtube = YouTube(video_url)
             video_stream = youtube.streams.get_highest_resolution()
 
-            # Download the video
-            video_filename = f"{video_id}.mp4"
-            video_stream.download(filename=video_filename)
+            # Get the video stream URL
+            stream_url = video_stream.url
 
-            # Serve the downloaded video as a static file
-            return send_file(video_filename, mimetype='video/mp4', as_attachment=False)
+            # Generate the video stream response
+            return Response(stream_video(stream_url), mimetype='video/mp4')
         except Exception as e:
             return f"An error occurred: {str(e)}"
-        finally:
-            # Remove the downloaded video file
-            if os.path.exists(video_filename):
-                os.remove(video_filename)
-                shutil.rmtree('images', ignore_errors=True)
 
     return "No video ID provided."
+
+def stream_video(url):
+    response = requests.get(url, stream=True)
+    for chunk in response.iter_content(chunk_size=1024 * 1024):  # 1MB chunks
+        yield chunk
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port='8080', debug=True)

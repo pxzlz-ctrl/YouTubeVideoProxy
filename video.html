@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Video Player</title>
+</head>
+<body>
+  <video id="videoPlayer" controls autoplay>
+    <source src="/video/{{ video_id }}" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <script>
+    // Wait for the video to load
+    document.getElementById('videoPlayer').addEventListener('loadedmetadata', function() {
+      // Once the video has loaded, play it
+      this.play();
+    });
+  </script>
+</body>
+</html>
