@@ -1,9 +1,12 @@
-from flask import Flask, request, Response
+from flask import Flask, request, send_file
 from pytube import YouTube
 import os
 import shutil
 
 app = Flask(__name__)
+
+# Set the video download directory
+VIDEO_DIR = "videos"
 
 @app.route('/')
 def home():
@@ -19,38 +22,26 @@ def proxy():
             youtube = YouTube(video_url)
             video_stream = youtube.streams.get_highest_resolution()
 
-            # Set video file name and path
-            video_filename = f"{video_id}.mp4"
-            video_path = os.path.join("videos", video_filename)
-
             # Download the video
-            video_stream.download(output_path="videos", filename=video_filename)
+            video_filename = f"{video_id}.mp4"
+            video_stream.download(output_path=VIDEO_DIR, filename=video_filename)
 
-            def generate():
-                # Open the video file in binary mode
-                with open(video_path, "rb") as video_file:
-                    # Read the video file in chunks and yield them to the response
-                    while True:
-                        video_chunk = video_file.read(1024 * 1024)  # Read 1MB at a time
-                        if not video_chunk:
-                            break
-                        yield video_chunk
-
-                # Remove the downloaded video file
-                if os.path.exists(video_path):
-                    os.remove(video_path)
-
-            # Serve the video as a streaming response
-            return Response(generate(), mimetype='video/mp4')
-
+            # Serve the downloaded video as a static file
+            video_path = os.path.join(VIDEO_DIR, video_filename)
+            return send_file(video_path, mimetype='video/mp4', as_attachment=False)
         except Exception as e:
             return f"An error occurred: {str(e)}"
         finally:
-            # Remove the downloaded video file if it exists
+            # Remove the downloaded video file
             if os.path.exists(video_path):
                 os.remove(video_path)
 
     return "No video ID provided."
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port='8080', debug=True)
+    # Create the video directory if it doesn't exist
+    if not os.path.exists(VIDEO_DIR):
+        os.makedirs(VIDEO_DIR)
+
+    # Run the Flask app
+    app.run(debug=False)
