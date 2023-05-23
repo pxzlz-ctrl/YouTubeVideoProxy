@@ -1,6 +1,7 @@
 from flask import Flask, request, Response
 from pytube import YouTube
-import requests
+import os
+import shutil
 
 app = Flask(__name__)
 
@@ -18,20 +19,38 @@ def proxy():
             youtube = YouTube(video_url)
             video_stream = youtube.streams.get_highest_resolution()
 
-            # Get the video stream URL
-            stream_url = video_stream.url
+            # Set video file name and path
+            video_filename = f"{video_id}.mp4"
+            video_path = os.path.join("videos", video_filename)
 
-            # Generate the video stream response
-            return Response(stream_video(stream_url), mimetype='video/mp4')
+            # Download the video
+            video_stream.download(output_path="videos", filename=video_filename)
+
+            def generate():
+                # Open the video file in binary mode
+                with open(video_path, "rb") as video_file:
+                    # Read the video file in chunks and yield them to the response
+                    while True:
+                        video_chunk = video_file.read(1024 * 1024)  # Read 1MB at a time
+                        if not video_chunk:
+                            break
+                        yield video_chunk
+
+                # Remove the downloaded video file
+                if os.path.exists(video_path):
+                    os.remove(video_path)
+
+            # Serve the video as a streaming response
+            return Response(generate(), mimetype='video/mp4')
+
         except Exception as e:
             return f"An error occurred: {str(e)}"
+        finally:
+            # Remove the downloaded video file if it exists
+            if os.path.exists(video_path):
+                os.remove(video_path)
 
     return "No video ID provided."
-
-def stream_video(url):
-    response = requests.get(url, stream=True)
-    for chunk in response.iter_content(chunk_size=1024 * 1024):  # 1MB chunks
-        yield chunk
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port='8080', debug=True)
