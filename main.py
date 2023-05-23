@@ -22,6 +22,10 @@ def proxy():
             youtube = YouTube(video_url)
             video_stream = youtube.streams.get_highest_resolution()
 
+            # Create the video directory if it doesn't exist
+            if not os.path.exists(VIDEO_DIR):
+                os.makedirs(VIDEO_DIR)
+
             # Download the video
             video_filename = f"{video_id}.mp4"
             video_stream.download(output_path=VIDEO_DIR, filename=video_filename)
@@ -39,9 +43,4 @@ def proxy():
     return "No video ID provided."
 
 if __name__ == "__main__":
-    # Create the video directory if it doesn't exist
-    if not os.path.exists(VIDEO_DIR):
-        os.makedirs(VIDEO_DIR)
-
-    # Run the Flask app
     app.run(debug=False)
